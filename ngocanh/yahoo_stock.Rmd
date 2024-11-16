@@ -7,7 +7,7 @@ output: html_document
 
 1. ĐỌc data
 ```{r}
-data <- read.csv("D:/DH/Chuoi Thoi gian/stocks-anime-analyze/data/NTDOY-stock.csv", stringsAsFactors = FALSE)
+data <- read.csv("../data/NTDOY-stock.csv", stringsAsFactors = FALSE)
 
 head(data)
 ```
