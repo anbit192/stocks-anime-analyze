@@ -1,0 +1,131 @@
+---
+title: "yahoo_stock"
+author: "21000405_Nguyễn Ngọc Anh"
+date: "2024-11-16"
+output: html_document
+---
+
+1. ĐỌc data
+```{r}
+data <- read.csv("D:/DH/Chuoi Thoi gian/stocks-anime-analyze/data/NTDOY-stock.csv", stringsAsFactors = FALSE)
+
+head(data)
+```
+
+2. Chuyển đổi dạng ngày, vẽ data
+```{r}
+data$Date <- as.Date(data$Date, format="%Y-%m-%d")
+```
+
+```{r}
+library(ggplot2)
+
+data$Date <- as.Date(data$Date, format="%Y-%m-%d")
+
+plot(data$Date, data$Adj.Close, type = "l", 
+     xlab = "Ngày", ylab = "Giá Đóng Cửa Hiệu Chỉnh", 
+     main = "Biểu Đồ Giá Đóng Cửa Hiệu Chỉnh Cổ Phiếu")
+```
+
+```{r}
+ggplot(data, aes(x = Date, y = Adj.Close)) +
+  geom_line(color = "red") +
+  labs(title = "Biểu Đồ Giá Đóng Cửa Cổ Phiếu Hiệu Chỉnh",
+       x = "Ngày",
+       y = "Giá Đóng Cửa Hiệu Chỉnh") +
+  theme_minimal()
+```
+
+3. Tạo dataframe chuỗi thời gian cho Adj Close
+```{r}
+data2 <- data.frame(
+  Date = data$Date,
+  Adj.Close = data$Adj.Close
+)
+
+# Chuyển cột Date sang định dạng Date
+data2$Date <- as.Date(data2$Date)
+
+# Tạo chuỗi thời gian NTDOY 
+start_year <- as.numeric(format(min(data2$Date), "%Y"))
+start_day <- as.numeric(format(min(data2$Date), "%j")) / 365
+frequency <- 252  # Số ngày giao dịch/năm (không có 2 ngày cuối tuần)
+
+NTDOY <- ts(data2$Adj.Close, start = c(start_year, start_day), frequency = frequency)
+```
+
+```{r}
+plot(NTDOY, main = "Adj.Close của NTDOY (2014-2024)", 
+     ylab = "Adj.Close", xlab = "Năm", lwd = 1)
+```
+
+4. Kiểm tra tính dừng của Adj Close của NTDOY
+```{r}
+library(tseries)
+adf.test(NTDOY)
+```
+Bài toán kiểm định: H0: Adj Close không là chuỗi dừng >< H1: Adj Close là chuỗi dừng
+Do p-value = 0.4478 > 0.05 nên không có cơ sở để bác bỏ H0, hay không có cơ sở để nói chuỗi thời gian Adj Close là chuỗi dừng
+
+5. Kiểm tra tính dừng của diff(NTDOY)
+```{r}
+# Tính sự sai phân của cột 'Adj Close'
+ntdoy_diff <- diff(NTDOY)
+
+# Tạo biểu đồ sai phân với định dạng thời gian
+plot(ntdoy_diff)
+adf.test(ntdoy_diff)
+```
+# Bài toán kiểm định: H0: diff(NTDOY) không là chuỗi dừng, H1: diff(NTDOY) là chuỗi dừng
+# Do p-value = 0.01 < 0.05 nên bác bỏ H0, hay có cơ sở để nói chuỗi thời gian diff(NTDOY) là chuỗi dừng
+
+6. Kiểm tra tính dừng của diff(log(NTDOY))
+```{r}
+adf.test(diff(log(NTDOY)))
+```
+# Bài toán kiểm định: H0: diff(log(NTDOY)) không là chuỗi dừng, H1: diff(log(NTDOY)) là chuỗi dừng
+# Do p-value = 0.01 < 0.05 nên bác bỏ H0, hay có cơ sở để nói chuỗi thời gian diff(log(NTDOY)) là chuỗi dừng
+
+7. Xét tiêu chí về tính chuẩn
+```{r}
+shapiro.test(diff(NTDOY)); shapiro.test(diff(log(NTDOY)))
+```
+H0: dữ liệu tuân theo phân phối chuẩn, H1: dữ liệu ko tuân theo phân phối chuẩn
+p-value < 0.05 -> 2 chuỗi không có phân phối chuẩn
+
+```{r}
+par(mfrow = c(2,1))
+qqnorm(diff(NTDOY)); qqline(diff(NTDOY))
+qqnorm(diff(log(NTDOY))); qqline(diff(log(NTDOY)))
+```
+Từ biểu đồ ta thấy chuỗi diff(log(NTDOY)) gần chuẩn hơn, nên ta lựa chọn diff(log(NTDOY))
+
+8. Xem xét về dữ liệu có tuân theo MA(?), AR(?)
+```{r}
+library(astsa)
+acf2(diff(log(NTDOY)))
+```
+Theo ACF: Chuỗi tg là một quá trình MA(1)
+Theo PACF: Chuỗi tg là một quá trình AR(1)
+
+9. Kiểm tra nhiều dự đoán ARMA
+```{r}
+library(TSA)
+eacf(diff(log(NTDOY)))
+```
+Các hàng: AR - tự hồi quy
+Các cột: MA - trung bình trượt
+Dự đoán chuỗi tg là quá trình ARMA(0,1) hoặc ARMA(1,1)
+
+10. Đưa ra dự đoán về qt ARIMA phù hợp theo các tiêu chí AIC, AICc, BIC
+```{r}
+library(forecast)
+auto.arima(NTDOY)
+```
+Mô hình tốt nhất: AR(2), sai phân (1), MA(0)
+AIC=-1361.56   AICc=-1361.55   BIC=-1343.82
+
+```{r}
+auto.arima(diff(NTDOY))
+```
+
