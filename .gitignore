@@ -3,3 +3,6 @@
 /test-na
 test.ipynb
 data_test.csv
+.RData
+.Rhistory
+*.html

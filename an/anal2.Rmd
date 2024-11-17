@@ -16,12 +16,15 @@ closed_prices = xts(df$Adj.Close, order.by = as.Date(df$Date))
 
 ```{r}
 plot(closed_prices)
+adf.test(closed_prices)
 
 ```
+
 ```{r}
 plot(diff(closed_prices))
 adf.test(diff(as.numeric(closed_prices)))
 ```
+
 ```{r}
 plot(diff(closed_prices))
 ```
@@ -34,5 +37,9 @@ acf2(diff(closed_prices))
 ```{r}
 shapiro.test(as.numeric(diff(closed_prices)))
 shapiro.test(as.numeric(closed_prices))
+```
+
+```{r}
+eacf(diff1)
 ```
 
